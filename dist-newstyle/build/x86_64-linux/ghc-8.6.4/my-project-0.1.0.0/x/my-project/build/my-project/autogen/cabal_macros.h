@@ -40,6 +40,16 @@
   (major1) == 4 && (major2) <  12 || \
   (major1) == 4 && (major2) == 12 && (minor) <= 0)
 #endif /* MIN_VERSION_base */
+/* package http-server-1.0.6 */
+#ifndef VERSION_http_server
+#define VERSION_http_server "1.0.6"
+#endif /* VERSION_http_server */
+#ifndef MIN_VERSION_http_server
+#define MIN_VERSION_http_server(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  0 || \
+  (major1) == 1 && (major2) == 0 && (minor) <= 6)
+#endif /* MIN_VERSION_http_server */
 /* package process-1.6.5.0 */
 #ifndef VERSION_process
 #define VERSION_process "1.6.5.0"
