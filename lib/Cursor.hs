@@ -27,6 +27,7 @@ configJSON = do
   let maybe_config = JSON.decodeText' config :: Either JSON.DecodeError Configuration
   case maybe_config of
     (Right x) -> return $ Just x 
-    (Left _) -> return $ Nothing
+    (Left _) -> return Nothing
+
 
 
