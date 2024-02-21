@@ -26,3 +26,4 @@ instance JSON.JSON Team where
     fromValue = JSON.withFlatMapR "Team" $ \ v -> Team <$> v .: "name"
     toValue (Team teamName) = JSON.object ["name" .= teamName]
     encodeJSON (Team teamName) = JSON.object' ("name" .! teamName)
+

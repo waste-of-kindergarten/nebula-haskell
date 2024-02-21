@@ -40,6 +40,16 @@
   (major1) == 4 && (major2) <  12 || \
   (major1) == 4 && (major2) == 12 && (minor) <= 0)
 #endif /* MIN_VERSION_base */
+/* package bytestring-0.10.8.2 */
+#ifndef VERSION_bytestring
+#define VERSION_bytestring "0.10.8.2"
+#endif /* VERSION_bytestring */
+#ifndef MIN_VERSION_bytestring
+#define MIN_VERSION_bytestring(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  10 || \
+  (major1) == 0 && (major2) == 10 && (minor) <= 8)
+#endif /* MIN_VERSION_bytestring */
 /* package filepath-1.4.2.1 */
 #ifndef VERSION_filepath
 #define VERSION_filepath "1.4.2.1"
@@ -50,6 +60,16 @@
   (major1) == 1 && (major2) <  4 || \
   (major1) == 1 && (major2) == 4 && (minor) <= 2)
 #endif /* MIN_VERSION_filepath */
+/* package http-client-0.7.16 */
+#ifndef VERSION_http_client
+#define VERSION_http_client "0.7.16"
+#endif /* VERSION_http_client */
+#ifndef MIN_VERSION_http_client
+#define MIN_VERSION_http_client(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  7 || \
+  (major1) == 0 && (major2) == 7 && (minor) <= 16)
+#endif /* MIN_VERSION_http_client */
 /* package http-server-1.0.6 */
 #ifndef VERSION_http_server
 #define VERSION_http_server "1.0.6"
@@ -60,6 +80,16 @@
   (major1) == 1 && (major2) <  0 || \
   (major1) == 1 && (major2) == 0 && (minor) <= 6)
 #endif /* MIN_VERSION_http_server */
+/* package http-types-0.12.4 */
+#ifndef VERSION_http_types
+#define VERSION_http_types "0.12.4"
+#endif /* VERSION_http_types */
+#ifndef MIN_VERSION_http_types
+#define MIN_VERSION_http_types(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  12 || \
+  (major1) == 0 && (major2) == 12 && (minor) <= 4)
+#endif /* MIN_VERSION_http_types */
 /* package process-1.6.5.0 */
 #ifndef VERSION_process
 #define VERSION_process "1.6.5.0"
@@ -70,6 +100,16 @@
   (major1) == 1 && (major2) <  6 || \
   (major1) == 1 && (major2) == 6 && (minor) <= 5)
 #endif /* MIN_VERSION_process */
+/* package regex-pcre-0.94.4 */
+#ifndef VERSION_regex_pcre
+#define VERSION_regex_pcre "0.94.4"
+#endif /* VERSION_regex_pcre */
+#ifndef MIN_VERSION_regex_pcre
+#define MIN_VERSION_regex_pcre(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  94 || \
+  (major1) == 0 && (major2) == 94 && (minor) <= 4)
+#endif /* MIN_VERSION_regex_pcre */
 /* package url-2.1.3 */
 #ifndef VERSION_url
 #define VERSION_url "2.1.3"
@@ -151,6 +191,16 @@
   (major1) == 0 && (major2) <  68 || \
   (major1) == 0 && (major2) == 68 && (minor) <= 5)
 #endif /* MIN_TOOL_VERSION_hsc2hs */
+/* tool pkg-config-0.29.2 */
+#ifndef TOOL_VERSION_pkg_config
+#define TOOL_VERSION_pkg_config "0.29.2"
+#endif /* TOOL_VERSION_pkg_config */
+#ifndef MIN_TOOL_VERSION_pkg_config
+#define MIN_TOOL_VERSION_pkg_config(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  29 || \
+  (major1) == 0 && (major2) == 29 && (minor) <= 2)
+#endif /* MIN_TOOL_VERSION_pkg_config */
 /* tool runghc-8.6.4 */
 #ifndef TOOL_VERSION_runghc
 #define TOOL_VERSION_runghc "8.6.4"
