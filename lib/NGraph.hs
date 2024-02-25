@@ -1,11 +1,30 @@
 {-# LANGUAGE GADTs, DataKinds #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module NGraph where
 import Data.Data (Typeable, cast)
+
+
+
+data Expr  where 
+    GT ::  Val -> Expr   
+    GE ::  Val -> Expr
+    LT ::  Val -> Expr 
+    LE ::  Val -> Expr 
+    EQ ::  Val -> Expr 
+    REG :: Val -> Expr 
+    NULL :: Expr 
+
 
 data All
 
 data Nul
+
+data Val = 
+    StringVal {getString :: String} 
+    | IntVal {getInt :: Int} 
 
 data Node a where
     Node :: {element :: a} -> Node a
@@ -48,4 +67,7 @@ instance GeneralMatch Relation where
     AnyRelation ⇛ Relation _ = True 
     QueryRelation f ⇛ Relation a = maybe False f (cast a) 
     _ ⇛ _ = False  
+
+
+
 

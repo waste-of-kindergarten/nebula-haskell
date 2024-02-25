@@ -7,14 +7,13 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Main where
 
-import Cursor 
+import Cursor
 import Network.HTTP.Server
 import Network.HTTP.Server.Logger
 import Network.URL as URL
 import Control.Exception(try, SomeException)
-import Codec.Binary.UTF8.String 
+import Codec.Binary.UTF8.String
 import System.FilePath(takeExtension)
-import Server (runServer)
 import qualified Z.Data.JSON as JSON
 import Network.HTTP.Client
 import Data.ByteString.Lazy.Internal as I
@@ -27,6 +26,8 @@ import Data.Data (Typeable)
 import Data.Typeable (cast)
 import Data.Typeable (gcast)
 import Text.Regex.PCRE
+import Server (gatewayLogin, runServer)
+
 
 {-
 data Data = Data {
@@ -77,35 +78,47 @@ f (P x) = case cast x of
 
 -}
 
- 
+{-
+toEntity :: [String] -> [Team]
+toEntity ls = foldr fun [] templist
+    where
+    templist :: [Either JSON.DecodeError Team]
+    templist = fmap (JSON.decodeText' . T.pack) ls
+    fun :: Either JSON.DecodeError Team -> [Team] -> [Team]
+    fun x xs = case x of 
+                Right r -> r : xs 
+                Left _ -> xs 
+-}
 
 main :: IO ()
-main = 
+main =  do 
+    gatewayLogin 
+    >>= runServer 
+
+{-
+main :: IO ()
+main =
     do
         manager <- newManager defaultManagerSettings
         initialRequest <- parseRequest "http://127.0.0.1:8080/api/db/exec"
-        let request = initialRequest {method = "POST",requestHeaders = [(hCookie,"SameSite=None; common-nsid=2b9afc5b3b4caaf66092a70e6b13e503;")],requestBody = RequestBodyLBS "{\"gql\":\"use  demo_football_2022;match  p=(v1 : player)--(v2 : team) return v2 limit 2\"}"}
+        let request = initialRequest {method = "POST",requestHeaders = [(hCookie,"SameSite=None; common-nsid=c22dd41fe96be1d23d50b02cbbbac7f1;")],requestBody = RequestBodyLBS "{\"gql\":\"use  demo_football_2022;match  p=(v1 : player)--(v2 : team) return v2 limit 2\"}"}
         response <- httpLbs request manager
         let x = responseBody response
         let x1 = I.unpackChars x
         --putStrLn x1
-        let (pre,cur,remain) =  (x1 :: String) =~ ("\"team\":\\s\\{([\\s\\S]*?)\\}" :: String) :: (String,String,String)
-        print pre 
-        print "------" 
-        print cur 
-        print "------"
-        print remain
-        
-        {-
-        let y = JSON.decodeText' (T.pack x1) :: Either JSON.DecodeError Resp
-        case y of 
-            (Right z) -> print z 
-            (Left _) -> print "cannnot parse"
-            -}
-        {-let y = JSON.decodeText' (T.pack x1) :: Either JSON.DecodeError LoginState
-        case y of 
-            (Right z) -> print z 
-            (Left _) -> print "cannot parse"
+        --let (pre,cur,remain) =  (x1 :: String) =~ ("\"team\":\\s\\{([\\s\\S]*?)\\}" :: String) :: (String,String,String)
+        print $ toEntity (generate "\"team\":\\s\\{([\\s\\S]*?)\\}" x1)
+-}
+{-
+let y = JSON.decodeText' (T.pack x1) :: Either JSON.DecodeError Resp
+case y of 
+    (Right z) -> print z 
+    (Left _) -> print "cannnot parse"
+    -}
+{-let y = JSON.decodeText' (T.pack x1) :: Either JSON.DecodeError LoginState
+case y of 
+    (Right z) -> print z 
+    (Left _) -> print "cannot parse"
 -}
 
     {-do 
