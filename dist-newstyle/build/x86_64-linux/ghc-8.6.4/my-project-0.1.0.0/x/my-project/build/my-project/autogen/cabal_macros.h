@@ -110,6 +110,16 @@
   (major1) == 0 && (major2) <  94 || \
   (major1) == 0 && (major2) == 94 && (minor) <= 4)
 #endif /* MIN_VERSION_regex_pcre */
+/* package timestamp-0.2 */
+#ifndef VERSION_timestamp
+#define VERSION_timestamp "0.2"
+#endif /* VERSION_timestamp */
+#ifndef MIN_VERSION_timestamp
+#define MIN_VERSION_timestamp(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  2 || \
+  (major1) == 0 && (major2) == 2 && (minor) <= 0)
+#endif /* MIN_VERSION_timestamp */
 /* package url-2.1.3 */
 #ifndef VERSION_url
 #define VERSION_url "2.1.3"

@@ -5,6 +5,7 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module NGraph where
 import Data.Data (Typeable, cast)
+import Timestamp (Timestamp)
 
 
 
@@ -25,6 +26,10 @@ data Nul
 data Val = 
     StringVal {getString :: String} 
     | IntVal {getInt :: Int} 
+    | TimestampVal {getTimestamp :: Timestamp}
+    | NULVal
+    deriving(Show)
+
 
 data Node a where
     Node :: {element :: a} -> Node a

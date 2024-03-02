@@ -27,6 +27,7 @@ import Data.Typeable (cast)
 import Data.Typeable (gcast)
 import Text.Regex.PCRE
 import Server (gatewayLogin, runServer)
+import Entity (LivedIn(LivedIn), CommentedAt (CommentedAt))
 
 
 {-
@@ -95,6 +96,16 @@ main =  do
     gatewayLogin 
     >>= runServer 
 
+
+{-
+main :: IO()
+main = do 
+    let a = JSON.decodeText' "{\"post_time\": 1546389006}" :: Either JSON.DecodeError CommentedAt 
+    case a of 
+        Left t -> print t 
+        Right v -> print v  
+-}
+
 {-
 main :: IO ()
 main =
@@ -106,7 +117,7 @@ main =
         let x = responseBody response
         let x1 = I.unpackChars x
         --putStrLn x1
-        --let (pre,cur,remain) =  (x1 :: String) =~ ("\"team\":\\s\\{([\\s\\S]*?)\\}" :: String) :: (String,String,String)
+        --let (pre,cur,remain) = (x1 :: String) =~ ("\"team\":\\s\\{([\\s\\S]*?)\\}" :: String) :: (String,String,String)
         print $ toEntity (generate "\"team\":\\s\\{([\\s\\S]*?)\\}" x1)
 -}
 {-
@@ -114,17 +125,19 @@ let y = JSON.decodeText' (T.pack x1) :: Either JSON.DecodeError Resp
 case y of 
     (Right z) -> print z 
     (Left _) -> print "cannnot parse"
-    -}
+-}
+
 {-let y = JSON.decodeText' (T.pack x1) :: Either JSON.DecodeError LoginState
 case y of 
     (Right z) -> print z 
     (Left _) -> print "cannot parse"
 -}
 
-    {-do 
-    manager <- newManager defaultManagerSettings 
-    request <- parseRequest "http://127.0.0.1:8080"
-    response <- httpLbs request manager 
-    print $ responseBody response
-    -}
+{-
+do 
+manager <- newManager defaultManagerSettings 
+request <- parseRequest "http://127.0.0.1:8080"
+response <- httpLbs request manager 
+print $ responseBody response
+-}
 
