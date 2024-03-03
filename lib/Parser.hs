@@ -55,8 +55,6 @@ anytoVal a = case cast a of
                             
 
 
-
-
 instance ParseRelation BelongTo where 
     (-→?) [] = QueryRelation $ \ belongto -> true belongto
 

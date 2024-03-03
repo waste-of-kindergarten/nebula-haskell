@@ -26,7 +26,7 @@ import Data.Data (Typeable)
 import Data.Typeable (cast)
 import Data.Typeable (gcast)
 import Text.Regex.PCRE
-import Server (gatewayLogin, runServer)
+import Server (gatewayLogin, runServer, gatewaySchemaQuery)
 import Entity (LivedIn(LivedIn), CommentedAt (CommentedAt))
 
 
@@ -91,8 +91,10 @@ toEntity ls = foldr fun [] templist
                 Left _ -> xs 
 -}
 
+
+
 main :: IO ()
-main =  do 
+main =
     gatewayLogin 
     >>= runServer 
 

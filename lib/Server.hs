@@ -72,10 +72,13 @@ serveFunction cookie query = case _query of
         Right q | query_type q == "edges" -> do
                                             ls <- gatewayQuery' cookie (body_query . query_body $ q) (body_name . query_body $ q)
                                             idls <- gatewayVidQuery cookie ([ t  | (t,_,_) <- ls] <> [ t | (_,t,_) <- ls])
-                                            let rells = fmap (\(_,_,c) -> c) ls 
-                                            print idls 
+                                            let rells = fmap (\(_,_,c) -> c) ls
+                                            --print idls 
                                             --print rells
                                             return $ sendJSON OK [[ t  | (t,_,_) <- ls],[ t | (_,t,_) <- ls],idls,rells]
+        Right q | query_type q == "schema" -> do 
+                                            ls <- gatewaySchemaQuery cookie 
+                                            return $ sendJSON OK ls 
     where _query = JSON.decodeText' (T.pack query) :: Either JSON.DecodeError Query
          {- _node_query  :: Either JSON.DecodeError NodeQuery
           _node_query = case _query of 
@@ -94,6 +97,37 @@ gatewayLogin = do
     let x = ((I.unpackChars . snd) (responseHeaders response !! 3) :: String) =~ ("common-nsid=(.*?);" :: String) :: String
     return $ "SameSite=None;" <> x
 
+
+gatewaySchemaQuery :: [Char] -> IO [(String,String,String)]
+gatewaySchemaQuery cookie = do
+    manager <- newManager defaultManagerSettings
+    initialRequest <- parseRequest "http://127.0.0.1:8080/api/db/exec"
+    foldr (GHC.Base.liftA2 (++)) (pure [] :: IO [(String,String,String)])  [func manager initialRequest x y | x <- nodelist, y <- nodelist]
+    where
+        nodelist = ["team","place","player","post","address"]
+        func :: Manager -> Network.HTTP.Client.Request -> String -> String -> IO [(String,String,String)]
+        func manager initialRequest src dst = do
+            let template = "{\"gql\":\"use demo_sns; match (v1:"<> src <>")-[e]->(v2:" <> dst  <> ") return distinct tags(v1),type(e),tags(v2);\"}"
+            --print template
+            let request = initialRequest {method = "POST",requestHeaders = [(hCookie,I.packChars cookie)],requestBody = (RequestBodyLBS . I'.packChars) template}
+            response <- httpLbs request manager
+            let x = (I'.unpackChars . responseBody) response
+            --print x
+            let code = ( (x :: String) =~ ("\"code\":\\s(.*)," :: String) ) :: String
+            let code' = (takeWhile (/=',') . tail . dropWhile (/=' ')) code
+            if code' == "-1"
+                then return []
+                else do
+                    let l1 = helper <$> generate "tags(v1)" "\"tags\\(v1\\)\":\\s\"(.*?)\"," x
+                    let l2 = helper <$> generate "tags(v2)" "\"tags\\(v2\\)\":\\s\"(.*?)\"," x
+                    let l3 = helper' <$> generate "type(e)" "\"type\\(e\\)\":\\s\"(.*)\"" x
+                    return $ zip3 l1 l2 l3
+            where helper t = let len = length t
+                                in (drop 5 . take (len - 5)) t
+                  helper' t = let len = length t
+                                in (drop 2 . take (len - 1)) t
+
+
 gatewayQuery' :: String -> [String] -> String -> IO [(String,String,String)]
 gatewayQuery' cookie query tag = do
     manager <- newManager defaultManagerSettings
@@ -101,8 +135,8 @@ gatewayQuery' cookie query tag = do
     let request = initialRequest {method = "POST",requestHeaders = [(hCookie,I.packChars cookie)],requestBody = RequestBodyLBS "{\"gql\":\"use demo_sns; match ()-[e:" <> (RequestBodyLBS . I'.packChars) tag <> "]->() return e limit 100\"}"}
     response <- httpLbs request manager
     let x = (I'.unpackChars . responseBody) response
-    putStrLn x
-    print $ generate (sign' (static' :: BelongTo)) (rule' (static' :: BelongTo)) x
+    --putStrLn x
+    --print $ generate (sign' (static' :: BelongTo)) (rule' (static' :: BelongTo)) x
     let fil
             | tag == "belong_to" = fmap (((-→?) query :: Relation BelongTo) ⇛) ((-→:) x :: [Relation BelongTo])
             | tag == "commented_at" = fmap (((-→?) query :: Relation CommentedAt) ⇛) ((-→:) x :: [Relation CommentedAt])
@@ -111,7 +145,7 @@ gatewayQuery' cookie query tag = do
             | tag == "lived_in" = fmap (((-→?) query :: Relation LivedIn) ⇛) ((-→:) x :: [Relation LivedIn])
             | tag == "serve" = fmap (((-→?) query :: Relation Serve) ⇛) ((-→:) x :: [Relation Serve])
             | otherwise = []
-    print fil
+    --print fil
     let res
             | tag == "belong_to" = listMask fil (generate (sign' (static' :: BelongTo)) (rule' (static' :: BelongTo)) x)
             | tag == "commented_at" = listMask fil (generate (sign' (static' :: CommentedAt)) (rule' (static' :: CommentedAt)) x)
@@ -120,11 +154,11 @@ gatewayQuery' cookie query tag = do
             | tag == "lived_in" = listMask fil (generate (sign' (static' :: LivedIn)) (rule' (static' :: LivedIn)) x)
             | tag == "serve" = listMask fil (generate (sign' (static' :: Serve)) (rule' (static' :: Serve)) x)
             | otherwise = []
-    print res
+    --print res
     let vidsrc = generateSrcVid x
     let viddst = generateDstVid x
-    print vidsrc
-    print viddst
+    --print vidsrc
+    --print viddst
     return $ zip3 vidsrc viddst res
 
 gatewayVidQuery :: String -> [String] -> IO [String]
@@ -132,19 +166,19 @@ gatewayVidQuery cookie queryvids = do
     manager <- newManager defaultManagerSettings
     initialRequest <- parseRequest "http://127.0.0.1:8080/api/db/exec"
     foldr (GHC.Base.liftA2 (:)) (pure [] :: IO [String]) (fmap (func manager initialRequest) queryvids)
-    where 
-        func manager initialRequest queryvid = do 
+    where
+        func manager initialRequest queryvid = do
             let len = length queryvid
             let queryvid' = "\\\"" ++ drop 2 (take (len - 1) queryvid) ++ "\\\""
-            print $ "{\"gql\":\"use demo_sns;match (v) where id(v) == " <> queryvid' <> " return tags(v)\"}"
-            let request' = initialRequest {method="POST",requestHeaders =[(hCookie,I.packChars cookie)],requestBody = RequestBodyLBS "{\"gql\":\"use demo_sns;match (v) where id(v) == " <> (RequestBodyLBS . I'.packChars) queryvid' <> " return tags(v);\"}"}  
+            --print $ "{\"gql\":\"use demo_sns;match (v) where id(v) == " <> queryvid' <> " return tags(v)\"}"
+            let request' = initialRequest {method="POST",requestHeaders =[(hCookie,I.packChars cookie)],requestBody = RequestBodyLBS "{\"gql\":\"use demo_sns;match (v) where id(v) == " <> (RequestBodyLBS . I'.packChars) queryvid' <> " return tags(v);\"}"}
             response' <- httpLbs request' manager
-            putStrLn $ (I'.unpackChars . responseBody) response'
+            --putStrLn $ (I'.unpackChars . responseBody) response'
             let tag' = ((I'.unpackChars . responseBody) response' :: String) =~ ("\\\\\"(.*?)\\\\\"" :: String) :: String
-            print tag'
-            let len' = length tag' 
+            --print tag'
+            let len' = length tag'
             let tag = drop 2 (take (len' - 2) tag')
-            print tag
+            --print tag
             let request = initialRequest {method = "POST",requestHeaders = [(hCookie,I.packChars  cookie)],requestBody = RequestBodyLBS "{\"gql\":\"use  demo_sns; match (v) where id(v) == " <> (RequestBodyLBS . I'.packChars) queryvid' <> " return v;\"}"}
             response <- httpLbs request manager
             let x = (I'.unpackChars . responseBody) response
@@ -155,7 +189,7 @@ gatewayVidQuery cookie queryvids = do
                     | tag == "post" = generate (sign (static :: Post)) (rule (static :: Post)) x
                     | tag == "address" = generate (sign (static :: Address)) (rule (static :: Address)) x
                     | otherwise = []
-            case res of 
+            case res of
                 [] -> return ""
                 _ -> return $ head res
 
@@ -167,7 +201,7 @@ gatewayQuery cookie query tag = do
     let request = initialRequest {method = "POST",requestHeaders = [(hCookie,I.packChars  cookie)],requestBody = RequestBodyLBS "{\"gql\":\"use  demo_sns; match (v:" <> (RequestBodyLBS . I'.packChars) tag <> ") return v limit 100\"}"}
     response <- httpLbs request manager
     let x = (I'.unpackChars . responseBody) response
-    putStrLn $ x <> "\n\n"
+    --putStrLn $ x <> "\n\n"
     let fil
           | tag == "team" = fmap (((→?) query :: Node Team) ⇛)  ((→:) x :: [Node Team])
           | tag == "place" = fmap (((→?) query :: Node Place) ⇛) ((→:) x :: [Node Place])
@@ -175,7 +209,7 @@ gatewayQuery cookie query tag = do
           | tag == "post" = fmap (((→?) query :: Node Post) ⇛) ((→:) x :: [Node Post])
           | tag == "address" = fmap (((→?) query :: Node Address) ⇛) ((→:) x :: [Node Address])
           | otherwise = []
-    print fil
+    -- print fil
     let res
           | tag == "team" = listMask fil (generate (sign (static :: Team)) (rule (static :: Team)) x)
           | tag == "place" = listMask fil (generate (sign (static :: Place)) (rule (static :: Place)) x)
