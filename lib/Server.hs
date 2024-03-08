@@ -76,14 +76,22 @@ serveFunction cookie query = case _query of
                                             --print idls 
                                             --print rells
                                             return $ sendJSON OK [[ t  | (t,_,_) <- ls],[ t | (_,t,_) <- ls],idls,rells]
-        Right q | query_type q == "schema" -> do 
-                                            ls <- gatewaySchemaQuery cookie 
-                                            return $ sendJSON OK ls 
+        Right q | query_type q == "schema" -> do
+                                            ls <- gatewaySchemaQuery cookie
+                                            return $ sendJSON OK ls
+        Right q | query_type q == "subgraph" -> do
+                                            (rel,nod,edge) <- gatewayConnectedQuery_1 cookie (body_query . query_body $ q) (body_name . query_body $ q)
+                                            print rel
+                                            print nod
+                                            print edge
+                                            return $ sendJSON OK (rel,nod,edge)
+        Right q | query_type q == "path" -> do
+                                            ls <- if (body_name . query_body $ q) == "bidirect"
+                                                    then gatewayShortestPATHQuery cookie (body_query . query_body $ q) True
+                                                    else gatewayShortestPATHQuery cookie (body_query . query_body $ q) False
+                                            return $ sendJSON OK ls
     where _query = JSON.decodeText' (T.pack query) :: Either JSON.DecodeError Query
-         {- _node_query  :: Either JSON.DecodeError NodeQuery
-          _node_query = case _query of 
-                            Right x -> JSON.decodeText' (T.pack (query_body x)) :: Either JSON.DecodeError NodeQuery
-                            Left t -> Left t -}
+
 
 
 
@@ -128,6 +136,71 @@ gatewaySchemaQuery cookie = do
                                 in (drop 2 . take (len - 1)) t
 
 
+gatewayShortestPATHQuery :: String -> [String] -> Bool -> IO [[(String,String,String)]]
+gatewayShortestPATHQuery cookie [vidsrc,viddst] isbi = do
+    manager <- newManager defaultManagerSettings
+    initialRequest <-parseRequest "http://127.0.0.1:8080/api/db/exec"
+    let template = if not isbi
+                        then "{\"gql\":\"use demo_sns; find shortest path from \\\"" <> I'.packChars vidsrc <>"\\\" to \\\"" <> I'.packChars viddst <> "\\\" over * yield path as p | limit 100;\"}"
+                        else "{\"gql\":\"use demo_sns; find shortest path from \\\"" <> I'.packChars vidsrc <>"\\\" to \\\"" <> I'.packChars viddst <> "\\\" over * BIDIRECT yield path as p | limit 100;\"}"
+    print template
+    let request = initialRequest {method="POST",requestHeaders = [(hCookie,I.packChars cookie)],requestBody = RequestBodyLBS template}
+    response <- httpLbs request manager
+    let x = (I'.unpackChars . responseBody) response
+    let ls = generate "relationships" "\"relationships\":\\s\\[[\\s\\S]*?\\]" x
+    let rells = generate "edgeName" "\"edgeName\":\\s\"(.*?)\"" <$> ls
+    let dstls = generate "dstID" "\"dstID\":\\s\"(.*?)\"" <$> ls
+    let srcls = generate "srcID" "\"srcID\":\\s\"(.*?)\"" <$> ls
+    --print rells
+    --print dstls 
+    --print srcls  
+    let res = [zip3 (srcls !! i) (dstls !! i) (rells !! i) | i <- [0..length ls - 1]]
+    return res
+
+
+gatewayConnectedQuery_1 :: String -> [String] -> String -> IO ([(String,String,String)],[(String,String)],[String])
+gatewayConnectedQuery_1 cookie [vid] tag = do
+    manager <- newManager defaultManagerSettings
+    initialRequest <- parseRequest "http://127.0.0.1:8080/api/db/exec"
+    let template = "{\"gql\":\"use demo_sns; match (v:" <> I'.packChars tag <> ")-[e1]-(v1) where id(v) == \\\"" <> I'.packChars  vid <> "\\\" return v,e1,v1 limit 100;\"}"
+    --print template
+    let request = initialRequest {method = "POST",requestHeaders = [(hCookie,I.packChars cookie)],requestBody = RequestBodyLBS template}
+    response <- httpLbs request manager
+    let x = (I'.unpackChars . responseBody) response
+    --putStrLn  x 
+    let ls = generate "properties" "\"properties\":\\s\\{[\\s\\S]*?\\}" x
+    let edgels = helper <$> generate "edgeName" "\"edgeName\":\\s\"(.*?)\"" x
+    let vidls = helper <$> generate "vid" "\"vid\":\\s\"(.*?)\"" x
+    let dstls = helper <$> generate "dstID" "\"dstID\":\\s\"(.*?)\"" x
+    let srcls = helper <$> generate "srcID" "\"srcID\":\\s\"(.*?)\"" x
+    --print vidls
+    --print dstls
+    --print srcls
+    --print ls
+    --print edgels
+    let vidls1 = [vidls !! i | i <- [0..length vidls - 1], i `mod` 2 == 0]
+    let vidls2 = [vidls !! i | i <- [0..length vidls - 1], i `mod` 2 == 1]
+    let ls' = [ls !! i  | i <- [0..length ls - 1], i `mod` 3 == 0 ]
+    let rel = zip3 srcls dstls edgels
+    let ls1 = helper' <$> [ls !! i | i <- [0..length ls - 1], i `mod` 3 == 1 ]
+    let ls2 = helper' <$> [ls !! i | i <- [0..length ls - 1], i `mod` 3 == 2 ]
+    let nod = zip (vidls1 <> vidls2) (ls1 <> ls2)
+    let edge = ls'
+    --print nod
+    --print $ ls1 !! 0
+    --print $ ls2 !! 0
+    --print $ ls3 !! 0 
+    --let l1 = generate "properties"
+    --print vidls1 
+    --print vidls2
+    --print rel
+    return (rel,nod,edge)
+    where
+        helper vid = let len = length vid
+                        in (drop 2 . take (len - 1)) vid
+        helper' :: String -> String
+        helper' x = drop 2 ((x =~ (":\\s\\{[\\s\\S]*?\\}" ::String)) :: String)
+
 gatewayQuery' :: String -> [String] -> String -> IO [(String,String,String)]
 gatewayQuery' cookie query tag = do
     manager <- newManager defaultManagerSettings
@@ -166,6 +239,7 @@ gatewayVidQuery cookie queryvids = do
     manager <- newManager defaultManagerSettings
     initialRequest <- parseRequest "http://127.0.0.1:8080/api/db/exec"
     foldr (GHC.Base.liftA2 (:)) (pure [] :: IO [String]) (fmap (func manager initialRequest) queryvids)
+    -- 同态律
     where
         func manager initialRequest queryvid = do
             let len = length queryvid
